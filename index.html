@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Borsa Gıda | Tahmin Paneli</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">BG</div>
+        <span>Borsa Gıda</span>
+      </div>
+
+      <div class="nav-section">ANA MENÜ</div>
+      <nav id="main-nav">
+        <a class="nav-item active" data-view="dashboard"><span class="dot"></span>Tahmin Paneli</a>
+        <a class="nav-item" data-view="products"><span class="dot"></span>Ürünler</a>
+        <a class="nav-item" data-view="settings"><span class="dot"></span>Ülke Ayarları</a>
+      </nav>
+
+      <div class="nav-section">DURUM</div>
+      <div class="status-box">
+        <div class="status-row"><span>Backend</span><span id="backend-status" class="badge badge-warn">Kontrol ediliyor</span></div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="footer-card">
+          <strong>Borsa Gıda</strong>
+          <p>Türkiye (HAL) ve Nepal (Kalimati) tarım ürünleri fiyat tahmin sistemi.</p>
+        </div>
+      </div>
+    </aside>
+
+    <main class="content">
+      <header class="topbar">
+        <div>
+          <h1 id="page-title">Tahmin Paneli</h1>
+          <p class="muted" id="page-subtitle">Geçmiş fiyat verilerini analiz edin, geleceği tahmin edin</p>
+        </div>
+        <div class="topbar-date">
+          <span class="muted">Bugünün Tarihi</span>
+          <strong id="today-date">-</strong>
+        </div>
+      </header>
+
+      <div id="error" class="error hidden"></div>
+
+      <!-- ================= TAHMİN PANELİ ================= -->
+      <div id="view-dashboard" class="view">
+        <section class="selectors">
+          <div class="field">
+            <label for="country">Ülke / Piyasa</label>
+            <select id="country" disabled><option>Yükleniyor...</option></select>
+          </div>
+          <div class="field">
+            <label for="product">Ürün</label>
+            <select id="product" disabled><option>Önce ülke seçin</option></select>
+          </div>
+          <div class="field">
+            <label for="ref-date">Tahmin Tarihi <span class="muted">(test dönemi)</span></label>
+            <input id="ref-date" type="date" disabled />
+          </div>
+          <button id="btn-refresh" disabled>Tahmini Güncelle</button>
+        </section>
+
+        <p class="muted hint" id="range-hint"></p>
+
+        <section class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Seçili Tarihteki Fiyat</div>
+            <div class="stat-value" id="stat-current">-</div>
+            <div class="stat-sub" id="stat-current-date">Tarih: -</div>
+          </div>
+          <div class="stat-card accent-blue">
+            <div class="stat-label">1 Gün Sonrası</div>
+            <div class="stat-value" id="stat-1d">-</div>
+            <div class="stat-sub" id="stat-1d-change">-</div>
+          </div>
+          <div class="stat-card accent-green">
+            <div class="stat-label">7 Gün Sonrası</div>
+            <div class="stat-value" id="stat-7d">-</div>
+            <div class="stat-sub" id="stat-7d-change">-</div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Geçmiş Veriler ve Tahmin</h2>
+              <p class="muted">Son fiyat hareketleri ve gelecek tahmin noktaları</p>
+            </div>
+            <div class="range-picker" id="range-picker">
+              <button data-days="5" class="range-btn">5G</button>
+              <button data-days="7" class="range-btn">7G</button>
+              <button data-days="30" class="range-btn active">1A</button>
+              <button data-days="90" class="range-btn">3A</button>
+              <button data-days="365" class="range-btn">1Y</button>
+              <button data-days="100000" class="range-btn">Tümü</button>
+            </div>
+          </div>
+          <canvas id="priceChart" height="110"></canvas>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Detaylı Tahminler</h2>
+              <p class="muted">Seçili ürün için ufuk bazlı tahmin sonuçları</p>
+            </div>
+          </div>
+          <table class="forecast-table">
+            <thead>
+              <tr>
+                <th>Ufuk</th>
+                <th>Referans Tarihi</th>
+                <th>Tahmin Tarihi</th>
+                <th>Referans Fiyat</th>
+                <th>Tahmini Fiyat</th>
+                <th>Gerçek Fiyat</th>
+                <th>Hata</th>
+              </tr>
+            </thead>
+            <tbody id="forecast-body">
+              <tr><td colspan="7" class="muted">Ürün seçildiğinde tahminler burada görünecek.</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+
+      <!-- ================= ÜRÜNLER ================= -->
+      <div id="view-products" class="view hidden">
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Ürünler</h2>
+              <p class="muted">Önce ülke seçin — alttaki form ve liste seçili ülkeye göre çalışır</p>
+            </div>
+            <select id="products-country" class="country-mini"></select>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Yeni Ürün Ekle</h2>
+              <p class="muted">Ürün, geçmiş verisi olmadan eklenir; başlangıçta tüm gecikme/ortalama değerleri girilen fiyata sabitlenir.</p>
+            </div>
+          </div>
+          <form id="product-form" class="inline-form">
+            <input id="pf-name" type="text" placeholder="Ürün adı (örn. KAVUN)" required />
+            <input id="pf-price" type="number" step="0.01" placeholder="Güncel fiyat" required />
+            <div class="field-inline">
+              <label for="pf-date">Fiyat Tarihi</label>
+              <input id="pf-date" type="date" required />
+            </div>
+            <input id="pf-fuel" type="number" step="0.01" placeholder="Mazot fiyatı (opsiyonel, sadece Türkiye)" />
+            <button type="submit">Ürün Ekle</button>
+          </form>
+          <p class="muted hint">Fiyat tarihi seçilmezse varsayılan olarak veri setinin son günü (referans tarihi) kullanılır.</p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Ürün Listesi</h2>
+              <p class="muted">Seçili ülkenin ürünleri — fiyat güncelleyebilir veya silebilirsiniz</p>
+            </div>
+          </div>
+          <table class="forecast-table">
+            <thead>
+              <tr>
+                <th>Ürün</th>
+                <th>Son Güncelleme</th>
+                <th>Güncel Fiyat</th>
+                <th>Yeni Tarih</th>
+                <th>İşlemler</th>
+              </tr>
+            </thead>
+            <tbody id="product-list-body">
+              <tr><td colspan="5" class="muted">Yükleniyor...</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+
+      <!-- ================= ÜLKE AYARLARI ================= -->
+      <div id="view-settings" class="view hidden">
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Ülke Ayarları</h2>
+              <p class="muted">Seçili ülkenin model ve para birimi bilgileri</p>
+            </div>
+            <select id="settings-country" class="country-mini"></select>
+          </div>
+
+          <div class="settings-grid">
+            <div class="settings-row">
+              <span class="muted">Ülke</span>
+              <strong id="set-label">-</strong>
+            </div>
+            <div class="settings-row">
+              <span class="muted">Ürün Sayısı</span>
+              <strong id="set-count">-</strong>
+            </div>
+            <div class="settings-row">
+              <span class="muted">Son Veri Tarihi</span>
+              <strong id="set-date">-</strong>
+            </div>
+          </div>
+
+          <form id="currency-form" class="inline-form">
+            <label class="muted" for="set-currency">Para Birimi</label>
+            <input id="set-currency" type="text" maxlength="6" />
+            <button type="submit">Kaydet</button>
+          </form>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
